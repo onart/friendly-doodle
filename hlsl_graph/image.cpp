@@ -6,8 +6,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <cstdio>
+#include <sstream>
 
-bool Texture2D::initResource(const void* pixels, size_t rowPitch, UINT width, UINT height, DXGI_FORMAT format) {
+bool ShaderBufferObject::initResource(const void* pixels, size_t rowPitch, UINT width, UINT height, DXGI_FORMAT format) {
 	if (texture) { return false; }
 	D3D11_TEXTURE2D_DESC desc{};
 	desc.Format = format;
@@ -39,7 +40,7 @@ bool Texture2D::initResource(const void* pixels, size_t rowPitch, UINT width, UI
 	return true;
 }
 
-bool Texture2D::initTarget(UINT width, UINT height, DXGI_FORMAT format) {
+bool ShaderBufferObject::initTarget(UINT width, UINT height, DXGI_FORMAT format) {
 	if (texture) { return false; }
 	D3D11_TEXTURE2D_DESC desc{};
 	desc.Format = format;
@@ -70,7 +71,7 @@ bool Texture2D::initTarget(UINT width, UINT height, DXGI_FORMAT format) {
 	return true;
 }
 
-bool Texture2D::initUAV(UINT width, UINT height, DXGI_FORMAT format) {
+bool ShaderBufferObject::initUAV(UINT width, UINT height, DXGI_FORMAT format) {
 	if (texture) { return false; }
 	D3D11_TEXTURE2D_DESC desc{};
 	desc.Format = format;
@@ -101,7 +102,7 @@ bool Texture2D::initUAV(UINT width, UINT height, DXGI_FORMAT format) {
 	return true;
 }
 
-void Texture2D::clear() {
+void ShaderBufferObject::clear() {
 	if (!texture) { return; }
 	if (!rtv && !uav) return;
 	float clearColor[4] = { 0, 0, 0, 0 };
@@ -114,21 +115,27 @@ void Texture2D::clear() {
 	}
 }
 
-void Texture2D::show(int renderW, int renderH) {
+void ShaderBufferObject::show(int renderW, int renderH) {
 	if (srv) {
-		if (rtv) { ImGui::Text("Render Target"); }
-		else if (uav) { ImGui::Text("UAV"); }
+		if (buffer) { ImGui::Text("UAV Structured Buffer"); }
+		else if (rtv) { ImGui::Text("Render Target"); }
+		else if (uav) { ImGui::Text("UAV Texture"); }
 		else { ImGui::Text("Resource"); }
 		ImGui::SameLine();
-		ImGui::Text("%p [%d x %d]", this, w, h);
-		ImGui::Checkbox("show", &shown);
-		if(shown) {
-			ImGui::Image((ImTextureID)srv, ImVec2(renderW, renderH));
+		if (!buffer) {
+			ImGui::Text("%p [%d x %d]", this, w, h);
+			ImGui::Checkbox("show", &shown);
+			if (shown) {
+				ImGui::Image((ImTextureID)srv, ImVec2(renderW, renderH));
+			}
+		}
+		else {
+			ImGui::Text("%p [%d bytes]", this, w);
 		}
 	}
 }
 
-std::shared_ptr<Texture2D> Texture2D::create(const char* u8path) {
+std::shared_ptr<ShaderBufferObject> ShaderBufferObject::create(const char* u8path) {
 	auto path = std::filesystem::u8path(u8path);
 	std::vector<uint8_t> fileData;
 	{
@@ -142,7 +149,43 @@ std::shared_ptr<Texture2D> Texture2D::create(const char* u8path) {
 	int w, h, ch;
 	auto pix = stbi_load_from_memory(fileData.data(), fileData.size(), &w, &h, &ch, 4);
 	if (!pix) return {};
-	auto tex = Texture2D::create(pix, static_cast<size_t>(w) * 4, static_cast<UINT>(w), static_cast<UINT>(h), DXGI_FORMAT_R8G8B8A8_UNORM);
+	auto tex = ShaderBufferObject::create(pix, static_cast<size_t>(w) * 4, static_cast<UINT>(w), static_cast<UINT>(h), DXGI_FORMAT_R8G8B8A8_UNORM);
 	stbi_image_free(pix);
 	return tex;
+}
+
+bool ShaderBufferObject::initBufferUAV(UINT size, UINT stride) {
+	if (texture || buffer) return false;
+	D3D11_BUFFER_DESC desc{};
+	desc.ByteWidth = size;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	desc.CPUAccessFlags = 0;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.StructureByteStride = stride;
+	desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	HRESULT hr = D3D11Device::getDevice()->CreateBuffer(&desc, nullptr, &buffer);
+	if (FAILED(hr)) {
+		return false;
+	}
+	hr = D3D11Device::getDevice()->CreateShaderResourceView(buffer, nullptr, &srv);
+	if (FAILED(hr)) {
+		return false;
+	}
+	hr = D3D11Device::getDevice()->CreateUnorderedAccessView(buffer, nullptr, &uav);
+	if (FAILED(hr)) {
+		return false;
+	}
+	w = size;
+	return true;
+}
+
+std::string ShaderBufferObject::toPrimaryCode(size_t binding) {
+	std::stringstream ss;
+	if (buffer) {
+		ss << "StructuredBuffer<float4> _t" << binding << " :register(t" << binding << ");\n";
+	}
+	else {
+		ss << "Texture2D _t" << binding << " :register(t" << binding << ");\n";
+	}
+	return ss.str();
 }

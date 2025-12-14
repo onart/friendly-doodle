@@ -45,10 +45,9 @@ public:
 	}
 
 	void draw();
-
+	std::string toPrimaryCode(size_t binding);
 private:
 	bool init(size_t sizeIn16Bytes);
-	std::string toPrimaryCode(size_t binding);
 	void update();
 	
 	ID3D11Buffer* buffer{};

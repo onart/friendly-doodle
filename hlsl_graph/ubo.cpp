@@ -30,7 +30,7 @@ bool UBO::init(size_t size) {
 
 std::string UBO::toPrimaryCode(size_t binding) {
 	std::stringstream ss;
-	ss << "cbuffer _" << binding << " :register(b" << binding << ") {\n";
+	ss << "cbuffer _b" << binding << " :register(b" << binding << ") {\n";
 	for (size_t i = 0; i < data.size(); ++i) {
 		switch (_meta[i].type) {
 		case F32:
