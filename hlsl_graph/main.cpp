@@ -2,6 +2,9 @@
 #include "imgui.h"
 #include "variant.h"
 #include "d3ddev.h"
+#include "resourcemanager.h"
+
+ResourceManager mgr;
 
 void update() {
 
@@ -9,9 +12,9 @@ void update() {
     ID3D11Device* device = Global::get<ID3D11Device*>("d3d11/device", nullptr);
     IDXGISwapChain* swapChain = Global::get<IDXGISwapChain*>("d3d11/swapchain", nullptr);
     ID3D11RenderTargetView* target = Global::get<ID3D11RenderTargetView*>("d3d11/target", nullptr);
-    
     if (ImGui::Begin(u8"main window")) {
 		ImGui::Text("Hello, world!");
+        mgr.draw();
     }
     ImGui::End();
 }
@@ -28,6 +31,7 @@ int main() {
         update();
         device.present();
     }
+    mgr.clear();
     device.finalize();
 	return 0;
 }

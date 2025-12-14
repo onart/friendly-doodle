@@ -14,6 +14,7 @@ inline static void releaseCom(T*& com) {
 
 static UINT resizeWidth = 0;
 static UINT resizeHeight = 0;
+static wchar_t path[4096];
 
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -24,7 +25,20 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch (msg)
     {
     case WM_DROPFILES:
+    {
+        uint32_t count = DragQueryFileW((HDROP)wParam, 0xffffffff, nullptr, 0);
+        D3D11Device::singleton->dropped.clear();
+        for (uint32_t i = 0; i < count; ++i) {
+            int reqSize = DragQueryFileW((HDROP)wParam, i, NULL, 0);
+            if (reqSize + 1 < sizeof(path) / sizeof(path[0])) {
+                if (DragQueryFileW((HDROP)wParam, i, path, reqSize + 1)) {
+                    D3D11Device::singleton->dropped.emplace_back(path);
+                }
+            }
+        }
+		D3D11Device::singleton->droppedFrameSN = D3D11Device::singleton->frameSN;
         return 0;
+    }
     case WM_SIZE:
         if (wParam == SIZE_MINIMIZED)
             return 0;
@@ -60,6 +74,7 @@ bool D3D11Device::init(const wchar_t* name) {
     ::RegisterClassExW(&wc);
     hwnd = ::CreateWindowW(wc.lpszClassName, name, WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
     if (!hwnd) return false;
+    DragAcceptFiles(hwnd, TRUE);
     ::ShowWindow(hwnd, SW_SHOWDEFAULT);
     ::UpdateWindow(hwnd);
 
@@ -165,6 +180,7 @@ void D3D11Device::finalize() {
 }
 
 bool D3D11Device::preUpdate() {
+    frameSN++;
     MSG msg;
     bool done = false;
     while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
