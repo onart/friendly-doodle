@@ -8,11 +8,18 @@
 #include "resourcemanager.h"
 #include "logger.h"
 
+static std::string lastError;
+
 ID3D11VertexShader* createVertexShader(const void* data, size_t size) {
 	ID3D11VertexShader* vertexShader = nullptr;
 	ID3DBlob* shaderBlob = nullptr;
-	HRESULT hr = D3DCompile(data, size, nullptr, nullptr, nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, nullptr);
+	ID3DBlob* errMessage = nullptr;
+	HRESULT hr = D3DCompile(data, size, nullptr, nullptr, nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, &errMessage);
 	if(FAILED(hr)) {
+		if (errMessage) {
+			lastError = (char*)errMessage->GetBufferPointer();
+			errMessage->Release();
+		}
 		return nullptr;
 	}
 	hr = D3D11Device::getDevice()->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &vertexShader);
@@ -26,8 +33,13 @@ ID3D11VertexShader* createVertexShader(const void* data, size_t size) {
 ID3D11PixelShader* createPixelShader(const void* data, size_t size) {
 	ID3D11PixelShader* pixelShader = nullptr;
 	ID3DBlob* shaderBlob = nullptr;
-	HRESULT hr = D3DCompile(data, size, nullptr, nullptr, nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, nullptr);
+	ID3DBlob* errMessage = nullptr;
+	HRESULT hr = D3DCompile(data, size, nullptr, nullptr, nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, &errMessage);
 	if (FAILED(hr)) {
+		if (errMessage) {
+			lastError = (char*)errMessage->GetBufferPointer();
+			errMessage->Release();
+		}
 		return nullptr;
 	}
 	hr = D3D11Device::getDevice()->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &pixelShader);
@@ -41,8 +53,13 @@ ID3D11PixelShader* createPixelShader(const void* data, size_t size) {
 ID3D11ComputeShader* createComputeShader(const void* data, size_t size) {
 	ID3D11ComputeShader* computeShader = nullptr;
 	ID3DBlob* shaderBlob = nullptr;
-	HRESULT hr = D3DCompile(data, size, nullptr, nullptr, nullptr, "main", "cs_5_0", 0, 0, &shaderBlob, nullptr);
+	ID3DBlob* errMessage = nullptr;
+	HRESULT hr = D3DCompile(data, size, nullptr, nullptr, nullptr, "main", "cs_5_0", 0, 0, &shaderBlob, &errMessage);
 	if(FAILED(hr)) {
+		if (errMessage) {
+			lastError = (char*)errMessage->GetBufferPointer();
+			errMessage->Release();
+		}
 		return nullptr;
 	}
 	hr = D3D11Device::getDevice()->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &computeShader);
@@ -107,6 +124,7 @@ void VertexShader::draw() {
 	ImGui::InputTextMultiline("Source Code", (char*)sourceCode.data(), sourceCode.size() - 1, ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), 0);
 	bool compiled = shader;
 	ImGui::Checkbox("compiled", &compiled);
+	static std::string _lastCompileError{};
 	if (ImGui::Button("Compile")) {
 		std::string baseStr;
 		int i = 0;
@@ -115,7 +133,7 @@ void VertexShader::draw() {
 			i++;
 		}
 
-		for (uint32_t tid = 0; this->texCount; tid++) {
+		for (uint32_t tid = 0; tid < this->texCount; tid++) {
 			baseStr += asString2<0>("Texture2D _t", tid, " :register(t", tid, ");\n");
 			baseStr += asString2<0>("SamplerState _s", tid, " :register(s", tid, ");\n");
 		}
@@ -125,7 +143,21 @@ void VertexShader::draw() {
 		}
 		baseStr += sourceCode.data();
 		shader = createVertexShader(baseStr.data(), baseStr.size());
+
+		if (!shader) {
+			ImGui::OpenPopup("compile error");
+			_lastCompileError = getLastCompileError();
+		}
+	}
+
+	if (ImGui::BeginPopup("compile error")) {
+		ImGui::Text(_lastCompileError.c_str());
+		ImGui::EndPopup();
 	}
 	
 	ImGui::PopID();
+}
+
+const std::string& getLastCompileError() {
+	return lastError;
 }

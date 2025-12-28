@@ -10,6 +10,7 @@
 ID3D11VertexShader* createVertexShader(const void* data, size_t size);
 ID3D11PixelShader* createPixelShader(const void* data, size_t size);
 ID3D11ComputeShader* createComputeShader(const void* data, size_t size);
+const std::string& getLastCompileError();
 
 class VertexShader {
 	public:
