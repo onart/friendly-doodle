@@ -22,6 +22,9 @@ ID3D11VertexShader* createVertexShader(const void* data, size_t size) {
 		}
 		return nullptr;
 	}
+	if (errMessage) {
+		errMessage->Release();
+	}
 	hr = D3D11Device::getDevice()->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &vertexShader);
 	shaderBlob->Release();
 	if (FAILED(hr)) {
@@ -42,6 +45,9 @@ ID3D11PixelShader* createPixelShader(const void* data, size_t size) {
 		}
 		return nullptr;
 	}
+	if (errMessage) {
+		errMessage->Release();
+	}
 	hr = D3D11Device::getDevice()->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &pixelShader);
 	shaderBlob->Release();
 	if (FAILED(hr)) {
@@ -61,6 +67,9 @@ ID3D11ComputeShader* createComputeShader(const void* data, size_t size) {
 			errMessage->Release();
 		}
 		return nullptr;
+	}
+	if (errMessage) {
+		errMessage->Release();
 	}
 	hr = D3D11Device::getDevice()->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &computeShader);
 	shaderBlob->Release();
