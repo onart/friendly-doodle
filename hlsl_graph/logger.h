@@ -13,7 +13,12 @@ std::string asString(const T&... args) {
 template<char sep = ' ', class... T>
 std::string asString2(const T&... args) {
 	std::stringstream ss;
-	((ss << args << sep), ...);
+	if constexpr (sep == 0) {
+		((ss << args), ...);
+	}
+	else {
+		((ss << args << sep), ...);
+	}
 	return ss.str();
 }
 

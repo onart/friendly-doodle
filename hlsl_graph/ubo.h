@@ -9,11 +9,6 @@
 class UBO {
 public:
 	friend class ResourceManager;
-	enum vecType {
-		F32,
-		U32,
-		I32
-	};
 	std::shared_ptr<UBO> static create(size_t size) {
 		UBO ubo;
 		if (ubo.init(size)) {
@@ -28,12 +23,11 @@ public:
 		if (buffer) buffer->Release();
 	}
 
-	void setName(const std::string& name, int idx, vecType type = F32) {
+	void setName(const std::string& name, int idx) {
 		if(_meta.size() <= static_cast<size_t>(idx)) {
 			return;
 		}
 		_meta[idx].name = name;
-		_meta[idx].type = type;
 	}
 
 	void setData16(int idx, void* _16B) {
@@ -57,7 +51,6 @@ private:
 		int32_t i32[4];
 	};
 	struct meta {
-		vecType type;
 		std::string name;
 	};
 	std::vector<v16> data;

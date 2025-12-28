@@ -24,8 +24,10 @@ class VertexShader {
 private:
 	VertexShader():sourceCode(16384) {}
 	ID3D11VertexShader* shader{};
-	std::list<std::shared_ptr<class ShaderBufferObject>> buffers{};
-	std::list<std::shared_ptr<class UBO>> ubos{};
+	
+	uint32_t texCount{};
+	uint32_t sboCount{};
+	std::list<uint32_t> ubos{};
 	std::vector<char> sourceCode;
 };
 

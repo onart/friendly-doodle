@@ -22,7 +22,6 @@ bool UBO::init(size_t size) {
 	data.resize(size);
 	_meta.resize(size);
 	for (int i = 0; i < size; i++) {
-		_meta[i].type = F32;
 		_meta[i].name = "v" + std::to_string(i);
 	}
 	return true;
@@ -32,18 +31,7 @@ std::string UBO::toPrimaryCode(size_t binding) {
 	std::stringstream ss;
 	ss << "cbuffer _b" << binding << " :register(b" << binding << ") {\n";
 	for (size_t i = 0; i < data.size(); ++i) {
-		switch (_meta[i].type) {
-		case F32:
-			ss << "float4 ";
-			break;
-		case U32:
-			ss << "uint4 ";
-			break;
-		case I32:
-			ss << "int4 ";
-			break;
-		}
-		ss << _meta[i].name << ";\n";
+		ss << "float4 " << _meta[i].name << ";\n";
 	}
 	
 	ss << "};\n";
@@ -53,24 +41,10 @@ std::string UBO::toPrimaryCode(size_t binding) {
 void UBO::draw() {
 	ImGui::PushID(this);
 	const ImGuiDataType typeArray[] = { ImGuiDataType_Float, ImGuiDataType_U32, ImGuiDataType_S32 };
-	const char* formatArray[] = {"%.3f", "%u", "%d"};
-	const float stepArray[] = { 0.1f, 1.0f, 1.0f };
-	const char* formatNames[] = { "F32", "U32", "I32" };
 	for (size_t i = 0; i < data.size(); ++i) {
 		auto& meta = _meta[i];
 		auto& dat = data[i];
-		dirty = ImGui::DragScalarN(meta.name.c_str(), typeArray[meta.type], &dat, 4, stepArray[meta.type], nullptr, nullptr, formatArray[meta.type], ImGuiSliderFlags_None) || dirty;
-		ImGui::SameLine();
-		ImGui::PushID(i);
-		if (ImGui::BeginCombo("change type", formatNames[meta.type])) {
-			for (int t = 0; t < 3; ++t) {
-				if (ImGui::Selectable(formatNames[t], meta.type == static_cast<vecType>(t))) {
-					meta.type = static_cast<vecType>(t);
-				}
-			}
-			ImGui::EndCombo();
-		}
-		ImGui::PopID();
+		dirty = ImGui::DragScalarN(meta.name.c_str(), ImGuiDataType_Float, &dat, 4, 0.01f, nullptr, nullptr, "%.3f", ImGuiSliderFlags_None) || dirty;
 	}
 	ImGui::PopID();
 }

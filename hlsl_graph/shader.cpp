@@ -6,6 +6,7 @@
 #include "ubo.h"
 #include "image.h"
 #include "resourcemanager.h"
+#include "logger.h"
 
 ID3D11VertexShader* createVertexShader(const void* data, size_t size) {
 	ID3D11VertexShader* vertexShader = nullptr;
@@ -57,10 +58,12 @@ void VertexShader::draw() {
 	ImGui::Text("Vertex Shader: %p", shader);
 	int i = 0;
 	if (ImGui::BeginTable("ubo_table", 2)) {
+		uint32_t id = 0;
 		for (auto it = ubos.begin(); it != ubos.end(); ) {
-			ImGui::PushID((size_t)it->get() + (i++));
+			uint32_t len = *it;
+			ImGui::PushID(id);
 			ImGui::TableNextColumn();
-			(*it)->draw();
+			ImGui::Text("%d: %dx4 ubo", id, len);
 			ImGui::TableNextColumn();
 			if (ImGui::Button("x")) {
 				it = ubos.erase(it);
@@ -69,6 +72,7 @@ void VertexShader::draw() {
 				++it;
 			}
 			ImGui::TableNextRow();
+			id++;
 			ImGui::PopID();
 		}
 		ImGui::EndTable();
@@ -76,43 +80,28 @@ void VertexShader::draw() {
 
 	if (ImGui::Button("+##ubo")) {
 		ImGui::OpenPopup("ubo");
-		mgr.addUBOUI(true);
 	}
 	if (ImGui::BeginPopup("ubo")) {
-		if (auto ubo = mgr.addUBOUI(false)) {
-			ubos.push_back(ubo);
+		static int f4count = 1;
+		ImGui::DragInt("float4 count", &f4count, 1, 1, 256);
+		if (ImGui::Button("confirm##ubo")) {
+			if (f4count > 0) {
+				ubos.push_back(f4count);
+			}
+			f4count = 1;
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::EndPopup();
 	}
 
-	if (ImGui::BeginTable("sbo_table", 2)) {
-		for (auto it = buffers.begin(); it != buffers.end(); ) {
-			ImGui::PushID((size_t)it->get() + (i++));
-			ImGui::TableNextColumn();
-			(*it)->show(256, 256);
-			ImGui::TableNextColumn();
-			if (ImGui::Button("x")) {
-				it = buffers.erase(it);
-			}
-			else {
-				++it;
-			}
-			ImGui::PopID();
-		}
-		ImGui::EndTable();
+	int sboCount = this->sboCount;
+	if (ImGui::InputInt("sbo count", &sboCount, 1)) {
+		this->sboCount = sboCount;
 	}
 
-	if (ImGui::Button("+##sbo")) {
-		ImGui::OpenPopup("sbo");
-		mgr.addSBOUI(true);
-	}
-	if (ImGui::BeginPopup("sbo")) {
-		if (auto sbo = mgr.addSBOUI(false)) {
-			buffers.push_back(sbo);
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::EndPopup();
+	int texCount = this->texCount;
+	if (ImGui::InputInt("texture count", &texCount, 1)) {
+		this->texCount = texCount;
 	}
 
 	ImGui::InputTextMultiline("Source Code", (char*)sourceCode.data(), sourceCode.size() - 1, ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), 0);
@@ -121,11 +110,18 @@ void VertexShader::draw() {
 	if (ImGui::Button("Compile")) {
 		std::string baseStr;
 		int i = 0;
-		for (auto& ubo : ubos) {
-			baseStr += ubo->toPrimaryCode(i++);
+		for (uint32_t len : ubos) {
+			baseStr += asString2<0>("cbuffer _b", i, ":register(b", i, "({\nfloat4 u", i, '[', len, "];\n};\n");
+			i++;
 		}
-		for (auto& buffer : buffers) {
-			baseStr += buffer->toPrimaryCode(i++);
+
+		for (uint32_t tid = 0; this->texCount; tid++) {
+			baseStr += asString2<0>("Texture2D _t", tid, " :register(t", tid, ");\n");
+			baseStr += asString2<0>("SamplerState _s", tid, " :register(s", tid, ");\n");
+		}
+
+		for (uint32_t bid = 0; bid < this->sboCount; bid++) {
+			baseStr += asString2<0>("StructuredBuffer<float4> _b", bid + this->texCount, ":register(t", bid + this->texCount, ");\n");
 		}
 		baseStr += sourceCode.data();
 		shader = createVertexShader(baseStr.data(), baseStr.size());
