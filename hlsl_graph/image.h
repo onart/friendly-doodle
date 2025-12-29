@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 
+#include "stream.hpp"
+
 class ShaderBufferObject {
 public:
 	friend class ResourceManager;
@@ -64,6 +66,7 @@ public:
 		if (srv) srv->Release();
 		if (rtv) rtv->Release();
 		if (uav) uav->Release();
+		if (tempPng) { free(tempPng); }
 	}
 
 	std::string toPrimaryCode(size_t binding);
@@ -72,6 +75,10 @@ public:
 	inline ID3D11ShaderResourceView* getSRV() { return srv; }
 	inline ID3D11RenderTargetView* getRTV() { return rtv; }
 	inline ID3D11UnorderedAccessView* getUAV() { return uav; }
+
+	size_t getBinSize();
+	bool serialize(stream& s);
+	bool deserialize(stream& s);
 private:
 	ShaderBufferObject() = default;
 	bool initResource(const void* pixels, size_t rowPitch, UINT width, UINT height, DXGI_FORMAT format);
@@ -83,8 +90,11 @@ private:
 	ID3D11ShaderResourceView* srv{};
 	ID3D11RenderTargetView* rtv{};
 	ID3D11UnorderedAccessView* uav{};
-	int w, h;
+	int w = 0, h = 0;
+	DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
 	bool shown = 0;
+	uint8_t* tempPng{};
+	uint32_t tempPngLen{};
 };
 
 #endif // !__IMAGE_H__

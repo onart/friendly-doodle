@@ -147,6 +147,8 @@
     <ClInclude Include="resourcemanager.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="stb_image_write.h" />
+    <ClInclude Include="stream.hpp" />
     <ClInclude Include="ubo.h" />
     <ClInclude Include="variant.h" />
     <ClInclude Include="imconfig.h" />

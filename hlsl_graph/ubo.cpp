@@ -38,6 +38,25 @@ std::string UBO::toPrimaryCode(size_t binding) {
 	return ss.str();
 }
 
+size_t UBO::getBinSize() {
+	return data.size() * sizeof(data[0]);
+}
+
+bool UBO::serialize(stream& s) {
+	const size_t size = data.size() * sizeof(data[0]);
+	s.write(size);
+	s.writeRaw(data.data(), data.size() * sizeof(data[0]));
+	return !s.hadFault();
+}
+
+bool UBO::deserialize(stream& s) {
+	size_t sz = s.read<size_t>();
+	if (s.hadFault()) return false;
+	data.resize(sz / sizeof(data[0]));
+	s.readRaw(data.data(), sz);
+	return !s.hadFault();
+}
+
 void UBO::draw() {
 	ImGui::PushID(this);
 	const ImGuiDataType typeArray[] = { ImGuiDataType_Float, ImGuiDataType_U32, ImGuiDataType_S32 };

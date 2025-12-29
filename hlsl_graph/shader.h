@@ -7,12 +7,18 @@
 #include <string>
 #include <memory>
 
+#include "stream.hpp"
+
 ID3D11VertexShader* createVertexShader(const void* data, size_t size);
 ID3D11PixelShader* createPixelShader(const void* data, size_t size);
 ID3D11ComputeShader* createComputeShader(const void* data, size_t size);
 const std::string& getLastCompileError();
 
 class Shader {
+public:
+	size_t getBinSize();
+	bool serialize(stream& s);
+	bool deserialize(stream& s);
 protected:
 	Shader() = default;
 	void drawShaderResourceUI(bool);

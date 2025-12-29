@@ -1,9 +1,12 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "resourcemanager.h"
 #include "imgui.h"
 #include "ubo.h"
 #include "image.h"
 #include "d3ddev.h"
 #include "shader.h"
+#include "stream.hpp"
+#include "Node.h"
 
 void ResourceManager::clear() {
 	ubos.clear();
@@ -429,9 +432,99 @@ std::shared_ptr<class ShaderBufferObject> ResourceManager::addSBOUI(bool reset) 
 }
 
 void ResourceManager::save(const std::filesystem::path& name) {
+	std::map<std::string, std::shared_ptr<struct Node>> pipelines;
+	std::vector<uint8_t> data;
 
+	size_t size = 64;
+	
+	size += 8;
+	for (auto& [name, ubo] : ubos) {
+		size += ubo->getBinSize();
+		size += name.size() + 16;
+	}
+
+	size += 8;
+	for (auto& [name, texture] : textures) {
+		size += texture->getBinSize();
+		size += name.size() + 16;
+	}
+
+	size += 8;
+	for (auto& [name, s] : vertexShaders) {
+		size += s->getBinSize();
+		size += name.size() + 16;
+	}
+
+	size += 8;
+	for (auto& [name, s] : pixelShaders) {
+		size += s->getBinSize();
+		size += name.size() + 16;
+	}
+
+	size += 8;
+	for (auto& [name, s] : computeShaders) {
+		size += s->getBinSize();
+		size += name.size() + 16;
+	}
+	
+	size += 8;
+	for (auto& [name, p] : pipelines) {
+		size += p->getBinSize();
+		size += name.size() + 16;
+	}
+
+	data.resize(size);
+	stream st(data.data(), size);
+
+	auto writeName = [&st](const std::string& name) {
+		size_t size = name.size();
+		st.write(size);
+		st.writeRaw(name.c_str(), size);
+		st.write(size);
+	};
+	for (auto& [name, ubo] : ubos) {
+		writeName(name);
+		if (!ubo->serialize(st)) return;
+	}
+
+	for (auto& [name, texture] : textures) {
+		writeName(name);
+		if (!texture->serialize(st)) return;
+	}
+
+	for (auto& [name, s] : vertexShaders) {
+		writeName(name);
+		if (!s->serialize(st)) return;
+	}
+
+	for (auto& [name, s] : pixelShaders) {
+		writeName(name);
+		if (!s->serialize(st)) return;
+	}
+
+	size += 8;
+	for (auto& [name, s] : computeShaders) {
+		writeName(name);
+		if (!s->serialize(st)) return;
+	}
+
+	size += 8;
+	for (auto& [name, p] : pipelines) {
+		writeName(name);
+		if (!p->serialize(st)) return;
+	}
+
+	FILE* fp = fopen(name.string().c_str(), "wb");
+	if (!fp) {
+		return;
+	}
+	fclose(fp);
 }
 
 void ResourceManager::load(const std::filesystem::path& name) {
-
+	FILE* fp = fopen(name.string().c_str(), "rb");
+	if (!fp) {
+		return;
+	}
+	fclose(fp);
 }

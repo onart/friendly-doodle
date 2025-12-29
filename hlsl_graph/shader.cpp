@@ -79,6 +79,34 @@ ID3D11ComputeShader* createComputeShader(const void* data, size_t size) {
 	return computeShader;
 }
 
+size_t Shader::getBinSize() {
+	return 12 + sizeof(uint32_t) * ubos.size() + sizeof(sourceCode.size()) + sourceCode.size();
+}
+
+bool Shader::serialize(stream& s) {
+	s.writes(texCount, sboCount, (uint32_t)ubos.size());
+	for (uint32_t ub : ubos) {
+		s.write(ub);
+	}
+	s.write(sourceCode.size());
+	s.writeRaw(sourceCode.data(), sourceCode.size());
+	return !s.hadFault();
+}
+
+bool Shader::deserialize(stream& s) {
+	auto [tex, sbo, ubo] = s.reads<uint32_t, uint32_t, uint32_t>();
+	texCount = tex;
+	sboCount = sbo;
+	for (uint32_t i = 0; i < ubo; i++) {
+		ubos.push_back(s.read<uint32_t>());
+		if (s.hadFault()) return false;
+	}
+	size_t sourceSize = s.read<size_t>();
+	sourceCode.resize(sourceSize);
+	s.readRaw(sourceCode.data(), sourceSize);
+	return !s.hadFault();
+}
+
 void Shader::drawShaderResourceUI(bool compiled) {
 	int i = 0;
 	ImGui::Text("Uniform buffers");

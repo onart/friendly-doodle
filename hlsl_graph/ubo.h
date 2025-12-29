@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 
+#include "stream.hpp"
+
 class UBO {
 public:
 	friend class ResourceManager;
@@ -40,6 +42,9 @@ public:
 
 	void draw();
 	std::string toPrimaryCode(size_t binding);
+	size_t getBinSize();
+	bool serialize(stream& s);
+	bool deserialize(stream& s);
 private:
 	bool init(size_t sizeIn16Bytes);
 	void update();

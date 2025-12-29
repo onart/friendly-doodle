@@ -5,6 +5,8 @@
 #include "imgui.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 #include <cstdio>
 #include <sstream>
 
@@ -37,6 +39,7 @@ bool ShaderBufferObject::initResource(const void* pixels, size_t rowPitch, UINT 
 	}
 	w = width;
 	h = height;
+	fmt = format;
 	return true;
 }
 
@@ -68,6 +71,7 @@ bool ShaderBufferObject::initTarget(UINT width, UINT height, DXGI_FORMAT format)
 	}
 	w = width;
 	h = height;
+	fmt = format;
 	return true;
 }
 
@@ -99,6 +103,7 @@ bool ShaderBufferObject::initUAV(UINT width, UINT height, DXGI_FORMAT format) {
 	}
 	w = width;
 	h = height;
+	fmt = format;
 	return true;
 }
 
@@ -176,6 +181,8 @@ bool ShaderBufferObject::initBufferUAV(UINT size, UINT stride) {
 		return false;
 	}
 	w = size;
+	h = stride;
+	fmt = DXGI_FORMAT_UNKNOWN;
 	return true;
 }
 
@@ -188,4 +195,95 @@ std::string ShaderBufferObject::toPrimaryCode(size_t binding) {
 		ss << "Texture2D _t" << binding << " :register(t" << binding << ");\n";
 	}
 	return ss.str();
+}
+
+size_t ShaderBufferObject::getBinSize() {
+	size_t size = 20;
+	if (!rtv && !uav) {
+		if (!tempPng) {
+			D3D11_TEXTURE2D_DESC desc{};
+			texture->GetDesc(&desc);
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+			desc.BindFlags = 0;
+			desc.Usage = D3D11_USAGE_STAGING;
+			ID3D11Texture2D* tex{};
+			D3D11Device::getDevice()->CreateTexture2D(&desc, nullptr, &tex);
+			if (tex) {
+				D3D11Device::getContext()->CopyResource(tex, texture);
+				D3D11_MAPPED_SUBRESOURCE sr{};
+				D3D11Device::getContext()->Map(tex, 0, D3D11_MAP_READ, 0, &sr);
+				int len = 0;
+				auto encoded = stbi_write_png_to_mem((const uint8_t*)sr.pData, sr.RowPitch, desc.Width, desc.Height, 4, &len);
+				tempPng = encoded;
+				tempPngLen = len;
+				encoded = 0;
+				size += len;
+			}
+		}
+		else {
+			size += tempPngLen;
+		}
+	}
+	return size;
+}
+
+bool ShaderBufferObject::serialize(stream& s) {
+	/*
+	* type (4B)
+	* dimension (4B + 4B)
+	* format (4B)
+	* data size(4B)
+	* data (var, only for input texture)
+	*/
+	int code = 0;
+	if (buffer) code |= 1;
+	if (rtv) code |= (1 << 1);
+	if (uav) code |= (1 << 2);
+	s.writes(code, w, h, fmt);
+	if (s.hadFault()) return false;
+
+	getBinSize();
+	s.write(tempPngLen);
+	if (tempPngLen) {
+		s.writeRaw(tempPng, tempPngLen);
+	}
+	return !s.hadFault();
+}
+
+bool ShaderBufferObject::deserialize(stream& s) {
+	auto [code, width, height, fmt] = s.reads<int, int, int, DXGI_FORMAT>();
+	if (s.hadFault()) return false;
+	if (code & 1) {
+		if (code & (1 << 1)) return false; // buffer & rtv
+		if (!initBufferUAV(w, h)) return false;
+	}
+	else if (code & (1 << 1)) {
+		if (code & (1 << 2)) return false; // rtv & uav
+		if (!initTarget(w, h, fmt)) return false;
+	}
+	else if (code & (1 << 2)) {
+		if (!initUAV(w, h, fmt)) return false;
+	}
+	else {
+		if (fmt == DXGI_FORMAT_R8G8B8A8_UNORM) {
+			tempPngLen = s.read<uint32_t>();
+			tempPng = (uint8_t*)malloc(tempPngLen);
+			s.readRaw(tempPng, tempPngLen);
+			if (s.hadFault()) return false;
+			int x = 0, y = 0, ch = 0;
+			auto pix = stbi_load_from_memory(tempPng, tempPngLen, &x, &y, &ch, 4);
+			if (!pix) return false;
+			if (x != w || y != h) {
+				stbi_image_free(pix);
+				return false;
+			}
+			if (!initResource(pix, 4 * ch, x, y, fmt)) {
+				stbi_image_free(pix);
+				return false;
+			}
+			stbi_image_free(pix);
+		}
+	}
+	
+	return true;
 }
