@@ -35,7 +35,14 @@ public:
 		if (it != pixelShaders.end()) {
 			return it->second;
 		}
-		return std::shared_ptr<class PixelShader>{};
+		return std::shared_ptr<class FragmentShader>{};
+	}
+	auto getComputeShader(const std::string& name) {
+		auto it = computeShaders.find(name);
+		if (it != computeShaders.end()) {
+			return it->second;
+		}
+		return std::shared_ptr<class ComputeShader>{};
 	}
 	std::shared_ptr<class UBO> addUBOUI(bool reset);
 	std::shared_ptr<class ShaderBufferObject> addSBOUI(bool reset);
@@ -43,8 +50,10 @@ private:
 	std::map<std::string, std::shared_ptr<class UBO>> ubos;
 	std::map<std::string, std::shared_ptr<class ShaderBufferObject>> textures;
 	std::map<std::string, std::shared_ptr<class VertexShader>> vertexShaders;
-	std::map<std::string, std::shared_ptr<class PixelShader>> pixelShaders;
-
+	std::map<std::string, std::shared_ptr<class FragmentShader>> pixelShaders;
+	std::map<std::string, std::shared_ptr<class ComputeShader>> computeShaders;
+	bool showResource{};
+	bool showShader{};
 };
 
 extern ResourceManager mgr;

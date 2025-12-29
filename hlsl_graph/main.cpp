@@ -13,7 +13,6 @@ void update() {
     IDXGISwapChain* swapChain = Global::get<IDXGISwapChain*>("d3d11/swapchain", nullptr);
     ID3D11RenderTargetView* target = Global::get<ID3D11RenderTargetView*>("d3d11/target", nullptr);
     if (ImGui::Begin(u8"main window")) {
-		ImGui::Text("Hello, world!");
         mgr.draw();
     }
     ImGui::End();

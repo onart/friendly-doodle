@@ -79,10 +79,9 @@ ID3D11ComputeShader* createComputeShader(const void* data, size_t size) {
 	return computeShader;
 }
 
-void VertexShader::draw() {
-	ImGui::PushID(this);
-	ImGui::Text("Vertex Shader: %p", shader);
+void Shader::drawShaderResourceUI(bool compiled) {
 	int i = 0;
+	ImGui::Text("Uniform buffers");
 	if (ImGui::BeginTable("ubo_table", 2)) {
 		uint32_t id = 0;
 		for (auto it = ubos.begin(); it != ubos.end(); ) {
@@ -121,7 +120,7 @@ void VertexShader::draw() {
 	}
 
 	int sboCount = this->sboCount;
-	if (ImGui::InputInt("sbo count", &sboCount, 1)) {
+	if (ImGui::InputInt("structured buffer<float4> count", &sboCount, 1)) {
 		this->sboCount = sboCount;
 	}
 
@@ -131,7 +130,6 @@ void VertexShader::draw() {
 	}
 
 	ImGui::InputTextMultiline("Source Code", (char*)sourceCode.data(), sourceCode.size() - 1, ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), 0);
-	bool compiled = shader;
 	ImGui::Checkbox("compiled", &compiled);
 	static std::string _lastCompileError{};
 	if (ImGui::Button("Compile")) {
@@ -151,9 +149,8 @@ void VertexShader::draw() {
 			baseStr += asString2<0>("StructuredBuffer<float4> _b", bid + this->texCount, ":register(t", bid + this->texCount, ");\n");
 		}
 		baseStr += sourceCode.data();
-		shader = createVertexShader(baseStr.data(), baseStr.size());
 
-		if (!shader) {
+		if (!compileShaderUI(baseStr.data(), baseStr.size())) {
 			ImGui::OpenPopup("compile error");
 			_lastCompileError = getLastCompileError();
 		}
@@ -163,10 +160,50 @@ void VertexShader::draw() {
 		ImGui::Text(_lastCompileError.c_str());
 		ImGui::EndPopup();
 	}
-	
+}
+
+void VertexShader::draw() {
+	ImGui::PushID(this);
+	ImGui::Text("Vertex Shader: %p", shader);
+	drawShaderResourceUI(shader);
 	ImGui::PopID();
+}
+
+bool VertexShader::compileShaderUI(const char* data, size_t size) {
+	auto p = createVertexShader(data, size);
+	if (shader) { shader->Release(); }
+	shader = p;
+	return p;
 }
 
 const std::string& getLastCompileError() {
 	return lastError;
+}
+
+void FragmentShader::draw() {
+	ImGui::PushID(this);
+	ImGui::Text("Pixel Shader: %p", shader);
+	drawShaderResourceUI(shader);
+	ImGui::PopID();
+}
+
+bool FragmentShader::compileShaderUI(const char* data, size_t size) {
+	auto p = createPixelShader(data, size);
+	if (shader) { shader->Release(); }
+	shader = p;
+	return p;
+}
+
+void ComputeShader::draw() {
+	ImGui::PushID(this);
+	ImGui::Text("Compute Shader: %p", shader);
+	drawShaderResourceUI(shader);
+	ImGui::PopID();
+}
+
+bool ComputeShader::compileShaderUI(const char* data, size_t size) {
+	auto p = createComputeShader(data, size);
+	if (shader) { shader->Release(); }
+	shader = p;
+	return p;
 }
