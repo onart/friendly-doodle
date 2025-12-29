@@ -4,11 +4,14 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <filesystem>
 
 class ResourceManager {
 public:
 	void clear();
 	void draw();
+	void save(const std::filesystem::path& p);
+	void load(const std::filesystem::path& p);
 	auto getUBO(const std::string& name) {
 		auto it = ubos.find(name);
 		if (it != ubos.end()) {
@@ -47,13 +50,18 @@ public:
 	std::shared_ptr<class UBO> addUBOUI(bool reset);
 	std::shared_ptr<class ShaderBufferObject> addSBOUI(bool reset);
 private:
+	std::filesystem::path drawExplore(const char* name, const char** extFilter, int filterCount);
 	std::map<std::string, std::shared_ptr<class UBO>> ubos;
 	std::map<std::string, std::shared_ptr<class ShaderBufferObject>> textures;
 	std::map<std::string, std::shared_ptr<class VertexShader>> vertexShaders;
 	std::map<std::string, std::shared_ptr<class FragmentShader>> pixelShaders;
 	std::map<std::string, std::shared_ptr<class ComputeShader>> computeShaders;
+	std::map<std::string, std::shared_ptr<struct Node>> pipelines;
 	bool showResource{};
 	bool showShader{};
+	std::filesystem::path currentProject{};
+	std::filesystem::path explore{};
+	std::filesystem::path exploreSelected{};
 };
 
 extern ResourceManager mgr;

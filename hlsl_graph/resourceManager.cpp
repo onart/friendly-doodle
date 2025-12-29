@@ -22,8 +22,143 @@ const static struct __fmt {
 	DXGI_FORMAT fmt;
 } fmts[] = { {"RGBA8", DXGI_FORMAT_R8G8B8A8_UNORM}, {"RGBA32F", DXGI_FORMAT_R32G32B32A32_FLOAT} };
 
+std::filesystem::path ResourceManager::drawExplore(const char* name, const char** filter, int filterCount) {
+	std::filesystem::path result;
+	if (explore.empty()) { explore = std::filesystem::current_path(); }
+	if (!std::filesystem::is_directory(explore)) {
+		explore = explore.parent_path();
+	}
+	bool confirmed = false;
+	ImGui::SetNextWindowSize({640, 480}, ImGuiCond_Appearing);
+	if (ImGui::Begin(name)) {
+		static char u8p[4096];
+		ImGui::InputText("##path", u8p, sizeof(u8p));
+		ImGui::SameLine();
+		std::filesystem::path newp = std::filesystem::u8path(u8p);
+		if (ImGui::Button("browse")) {
+			if (std::filesystem::exists(newp)) {
+				if (std::filesystem::is_directory(newp)) {
+					explore = newp;
+				}
+				else {
+					explore = newp.parent_path();
+				}
+			}
+			else {
+				std::string str = explore.u8string();
+				std::memcpy(u8p, str.data(), str.size());
+				u8p[str.size()] = 0;
+			}
+		}
+		if (ImGui::Selectable("..", exploreSelected == "..")) {
+			exploreSelected = explore.parent_path();
+		}
+		if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+			explore = explore.parent_path();
+			exploreSelected.clear();
+			std::string str = explore.u8string();
+			std::memcpy(u8p, str.data(), str.size());
+			u8p[str.size()] = 0;
+		}
+		for (auto& entry : std::filesystem::directory_iterator(explore)) {
+			const auto& p = entry.path();
+			if (filterCount) {
+				bool accepted = false;
+				for (int i = 0; i < filterCount; i++) {
+					if (filter[i][0] == 0) {
+						if (std::filesystem::is_directory(p)) {
+							accepted = true;
+							break;
+						}
+					}
+					if (p.extension() == filter[i]) {
+						accepted = true;
+						break;
+					}
+				}
+				if (!accepted) {
+					continue;
+				}
+			}
+			if (ImGui::Selectable(p.filename().u8string().c_str(), p == exploreSelected)) {
+				exploreSelected = p;
+			}
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+				if (std::filesystem::is_directory(p)) {
+					std::string str = p.u8string();
+					std::memcpy(u8p, str.data(), str.size());
+					u8p[str.size()] = 0;
+					explore = p;
+				}
+				break;
+			}
+		}
+		static char u8p2[256];
+		ImGui::InputText("##name", u8p2, sizeof(u8p2));
+		ImGui::SameLine();
+		if (ImGui::Button("Save Here")) {
+			result = explore / u8p2;
+			if (std::filesystem::exists(result)) {
+				if (std::filesystem::is_directory(result)) {
+					result.clear();
+				}
+				else {
+					ImGui::OpenPopup("overwrite");
+				}
+			}
+		}
+		if (ImGui::BeginPopup("overwrite")) {
+			result = explore / u8p2;
+			result.replace_extension(".fdd");
+			ImGui::Text("%s: Already exsists. Overwrite?", result.u8string().c_str());
+			bool confirm = false;
+			if (ImGui::Button("Yes")) {
+				confirm = true;
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::Button("No")) {
+				ImGui::CloseCurrentPopup();
+			}
+			if (!confirm) {
+				result.clear();
+			}
+			else {
+				u8p[0] = 0;
+				u8p2[0] = 0;
+			}
+			ImGui::EndPopup();
+		}
+	}
+	ImGui::End();
+	return result;
+}
+
 void ResourceManager::draw(){
 	ImGui::PushID(this);
+	ImGui::Text("Project: %s", currentProject.u8string().c_str());
+	if (ImGui::Button("Save")) {
+		if (currentProject.empty()) {
+			explore = std::filesystem::current_path();
+		}
+		else {
+			save(currentProject);
+		}
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Save As")) {
+		explore = std::filesystem::current_path();
+	}
+
+	if (!explore.empty()) {
+		const char* filter[] = { u8"", u8".fdd" };
+		auto path = drawExplore("Save as..", filter, std::size(filter));
+		if (!path.empty()) {
+			explore.clear();
+			save(path);
+			currentProject = path;
+		}
+	}
+
 	ImGui::Checkbox("resource window", &showResource);
 	ImGui::Checkbox("shader window", &showShader);
 	if (showResource) {
@@ -291,4 +426,12 @@ std::shared_ptr<class ShaderBufferObject> ResourceManager::addSBOUI(bool reset) 
 		return it->second;
 	}
 	return {};
+}
+
+void ResourceManager::save(const std::filesystem::path& name) {
+
+}
+
+void ResourceManager::load(const std::filesystem::path& name) {
+
 }
