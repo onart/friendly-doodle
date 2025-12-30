@@ -36,7 +36,7 @@ public:
 
 	template<class T>
 	inline void write(const T& v) {
-		static_assert(!std::is_pointer_v<T>);
+		static_assert(!std::is_pointer_v<T> && std::is_copy_assignable_v<T>);
 		if (head + size < cursor + sizeof(T)) {
 			fault = true;
 			return;

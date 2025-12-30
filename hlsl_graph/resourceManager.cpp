@@ -435,7 +435,7 @@ void ResourceManager::save(const std::filesystem::path& name) {
 	std::map<std::string, std::shared_ptr<struct Node>> pipelines;
 	std::vector<uint8_t> data;
 
-	size_t size = 64;
+	size_t size = 36;
 	
 	size += 8;
 	for (auto& [name, ubo] : ubos) {
@@ -475,6 +475,9 @@ void ResourceManager::save(const std::filesystem::path& name) {
 
 	data.resize(size);
 	stream st(data.data(), size);
+	st.writeRaw("FDD\1", 4);
+	st.writes((uint32_t)ubos.size(), (uint32_t)textures.size(), (uint32_t)vertexShaders.size(), (uint32_t)pixelShaders.size(), (uint32_t)computeShaders.size(), (uint32_t)pipelines.size());
+	st.writes(size);
 
 	auto writeName = [&st](const std::string& name) {
 		size_t size = name.size();
@@ -482,49 +485,160 @@ void ResourceManager::save(const std::filesystem::path& name) {
 		st.writeRaw(name.c_str(), size);
 		st.write(size);
 	};
+
+	st.writes((uint32_t)ubos.size());
 	for (auto& [name, ubo] : ubos) {
 		writeName(name);
 		if (!ubo->serialize(st)) return;
 	}
+	st.writes((uint32_t)st.tell());
 
+	st.writes((uint32_t)textures.size());
 	for (auto& [name, texture] : textures) {
 		writeName(name);
 		if (!texture->serialize(st)) return;
 	}
+	st.writes((uint32_t)st.tell());
 
+	st.writes((uint32_t)vertexShaders.size());
 	for (auto& [name, s] : vertexShaders) {
 		writeName(name);
 		if (!s->serialize(st)) return;
 	}
+	st.writes((uint32_t)st.tell());
 
+	st.writes((uint32_t)pixelShaders.size());
 	for (auto& [name, s] : pixelShaders) {
 		writeName(name);
 		if (!s->serialize(st)) return;
 	}
+	st.writes((uint32_t)st.tell());
 
-	size += 8;
+	st.writes((uint32_t)computeShaders.size());
 	for (auto& [name, s] : computeShaders) {
 		writeName(name);
 		if (!s->serialize(st)) return;
 	}
+	st.writes((uint32_t)st.tell());
 
-	size += 8;
+	st.writes((uint32_t)pipelines.size());
 	for (auto& [name, p] : pipelines) {
 		writeName(name);
 		if (!p->serialize(st)) return;
 	}
+	st.writes((uint32_t)st.tell());
 
 	FILE* fp = fopen(name.string().c_str(), "wb");
 	if (!fp) {
 		return;
 	}
+	fwrite(data.data(), 1, data.size(), fp);
 	fclose(fp);
 }
 
-void ResourceManager::load(const std::filesystem::path& name) {
+bool ResourceManager::load(const std::filesystem::path& name) {
 	FILE* fp = fopen(name.string().c_str(), "rb");
 	if (!fp) {
-		return;
+		return false;
 	}
+	fseek(fp, 0, SEEK_END);
+	size_t size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	std::vector<uint8_t> data(size);
+	fread(data.data(), 1, size, fp);
 	fclose(fp);
+	
+	stream reader(data.data(), data.size());
+	char marker[4]{};
+	reader.readRaw(marker, 4);
+	if (std::memcmp(marker, "FDD\1", sizeof(marker)) != 0) {
+		return false;
+	}
+
+	auto [uboCount, texCount, vsCount, fsCount, csCount, pipeCount] = reader.reads<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>();
+	if (reader.hadFault()) return false;
+	if (reader.read<size_t>() != size) return false;
+
+	auto readName = [&reader]() -> std::string {
+		size_t size = reader.read<size_t>();
+		std::vector<char> name(size);
+		reader.readRaw(name.data(), size);
+		if (reader.read<size_t>() != size) {
+			return "";
+		}
+		return std::string(name.data(), size);
+	};
+
+	auto checkPos = [&reader]() {
+		uint32_t pos = reader.read<uint32_t>();
+		return reader.tell() == pos;
+	};
+
+	if (reader.read<uint32_t>() != uboCount) return false;
+	for (uint32_t i = 0; i < uboCount; i++) {
+		std::string name = readName();
+		if (name.empty()) return false;
+		auto obj = UBO::deserialize(reader);
+		if (!obj) return false;
+		ubos[name] = std::move(obj);
+	}
+	if (!checkPos()) return false;
+	if (ubos.size() != uboCount) return false; // overlapping name
+
+	if (reader.read<uint32_t>() != texCount) return false;
+	for (uint32_t i = 0; i < texCount; i++) {
+		std::string name = readName();
+		if (name.empty()) return false;
+		auto obj = ShaderBufferObject::deserialize(reader);
+		if (!obj) return false;
+		textures[name] = obj;
+	}
+	if (!checkPos()) return false;
+	if (textures.size() != texCount) return false; // overlapping name
+
+	if (reader.read<uint32_t>() != vsCount) return false;
+	for (uint32_t i = 0; i < vsCount; i++) {
+		std::string name = readName();
+		if (name.empty()) return false;
+		auto obj = Shader::deserialize<VertexShader>(reader);
+		if (!obj) return false;
+		vertexShaders[name] = obj;
+	}
+	if (!checkPos()) return false;
+	if (vertexShaders.size() != vsCount) return false; // overlapping name
+
+	if (reader.read<uint32_t>() != fsCount) return false;
+	for (uint32_t i = 0; i < fsCount; i++) {
+		std::string name = readName();
+		if (name.empty()) return false;
+		auto obj = Shader::deserialize<FragmentShader>(reader);
+		if (!obj) return false;
+		pixelShaders[name] = obj;
+	}
+	if (!checkPos()) return false;
+	if (pixelShaders.size() != fsCount) return false; // overlapping name
+
+	if (reader.read<uint32_t>() != csCount) return false;
+	for (uint32_t i = 0; i < csCount; i++) {
+		std::string name = readName();
+		if (name.empty()) return false;
+		auto obj = Shader::deserialize<ComputeShader>(reader);
+		if (!obj) return false;
+		computeShaders[name] = obj;
+	}
+	if (!checkPos()) return false;
+	if (computeShaders.size() != csCount) return false; // overlapping name
+
+	if (reader.read<uint32_t>() != pipeCount) return false;
+	for (uint32_t i = 0; i < pipeCount; i++) {
+		std::string name = readName();
+		if (name.empty()) return false;
+		auto obj = Node::deserialize(reader);
+		if (!obj) return false;
+		pipelines[name] = obj;
+	}
+	if (!checkPos()) return false;
+	if (pipelines.size() != pipeCount) return false; // overlapping name
+
+	return true;
 }

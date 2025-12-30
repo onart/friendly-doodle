@@ -250,40 +250,41 @@ bool ShaderBufferObject::serialize(stream& s) {
 	return !s.hadFault();
 }
 
-bool ShaderBufferObject::deserialize(stream& s) {
+std::shared_ptr<ShaderBufferObject> ShaderBufferObject::deserialize(stream& s) {
 	auto [code, width, height, fmt] = s.reads<int, int, int, DXGI_FORMAT>();
-	if (s.hadFault()) return false;
+	if (s.hadFault()) return {};
+	std::shared_ptr<ShaderBufferObject> ret(new ShaderBufferObject());
 	if (code & 1) {
-		if (code & (1 << 1)) return false; // buffer & rtv
-		if (!initBufferUAV(w, h)) return false;
+		if (code & (1 << 1)) return {}; // buffer & rtv
+		if (!ret->initBufferUAV(width, height)) return {};
 	}
 	else if (code & (1 << 1)) {
-		if (code & (1 << 2)) return false; // rtv & uav
-		if (!initTarget(w, h, fmt)) return false;
+		if (code & (1 << 2)) return {}; // rtv & uav
+		if (!ret->initTarget(width, height, fmt)) return {};
 	}
 	else if (code & (1 << 2)) {
-		if (!initUAV(w, h, fmt)) return false;
+		if (!ret->initUAV(width, height, fmt)) return {};
 	}
 	else {
 		if (fmt == DXGI_FORMAT_R8G8B8A8_UNORM) {
-			tempPngLen = s.read<uint32_t>();
-			tempPng = (uint8_t*)malloc(tempPngLen);
-			s.readRaw(tempPng, tempPngLen);
-			if (s.hadFault()) return false;
+			ret->tempPngLen = s.read<uint32_t>();
+			ret->tempPng = (uint8_t*)malloc(ret->tempPngLen);
+			s.readRaw(ret->tempPng, ret->tempPngLen);
+			if (s.hadFault()) return {};
 			int x = 0, y = 0, ch = 0;
-			auto pix = stbi_load_from_memory(tempPng, tempPngLen, &x, &y, &ch, 4);
-			if (!pix) return false;
-			if (x != w || y != h) {
+			auto pix = stbi_load_from_memory(ret->tempPng, ret->tempPngLen, &x, &y, &ch, 4);
+			if (!pix) return {};
+			if (x != width || y != height) {
 				stbi_image_free(pix);
-				return false;
+				return {};
 			}
-			if (!initResource(pix, 4 * ch, x, y, fmt)) {
+			if (!ret->initResource(pix, 4 * ch, x, y, fmt)) {
 				stbi_image_free(pix);
-				return false;
+				return {};
 			}
 			stbi_image_free(pix);
 		}
 	}
 	
-	return true;
+	return ret;
 }

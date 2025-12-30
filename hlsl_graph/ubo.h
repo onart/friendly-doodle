@@ -44,7 +44,7 @@ public:
 	std::string toPrimaryCode(size_t binding);
 	size_t getBinSize();
 	bool serialize(stream& s);
-	bool deserialize(stream& s);
+	static std::shared_ptr<UBO> deserialize(stream& s);
 private:
 	bool init(size_t sizeIn16Bytes);
 	void update();

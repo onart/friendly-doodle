@@ -49,12 +49,14 @@ bool UBO::serialize(stream& s) {
 	return !s.hadFault();
 }
 
-bool UBO::deserialize(stream& s) {
+std::shared_ptr<UBO> UBO::deserialize(stream& s) {
 	size_t sz = s.read<size_t>();
-	if (s.hadFault()) return false;
-	data.resize(sz / sizeof(data[0]));
-	s.readRaw(data.data(), sz);
-	return !s.hadFault();
+	if (s.hadFault()) return {};
+	if (sz % 16) return {};
+	auto ret = create(sz / 16);
+	s.readRaw(ret->data.data(), sz);
+	if (s.hadFault()) return {};
+	return ret;
 }
 
 void UBO::draw() {

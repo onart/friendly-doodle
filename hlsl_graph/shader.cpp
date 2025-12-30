@@ -93,7 +93,7 @@ bool Shader::serialize(stream& s) {
 	return !s.hadFault();
 }
 
-bool Shader::deserialize(stream& s) {
+bool Shader::commonDeserialize(stream& s) {
 	auto [tex, sbo, ubo] = s.reads<uint32_t, uint32_t, uint32_t>();
 	texCount = tex;
 	sboCount = sbo;

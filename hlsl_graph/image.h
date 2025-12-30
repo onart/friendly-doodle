@@ -78,7 +78,7 @@ public:
 
 	size_t getBinSize();
 	bool serialize(stream& s);
-	bool deserialize(stream& s);
+	static std::shared_ptr<ShaderBufferObject> deserialize(stream& s);
 private:
 	ShaderBufferObject() = default;
 	bool initResource(const void* pixels, size_t rowPitch, UINT width, UINT height, DXGI_FORMAT format);

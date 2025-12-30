@@ -11,7 +11,7 @@ public:
 	void clear();
 	void draw();
 	void save(const std::filesystem::path& p);
-	void load(const std::filesystem::path& p);
+	bool load(const std::filesystem::path& p);
 	auto getUBO(const std::string& name) {
 		auto it = ubos.find(name);
 		if (it != ubos.end()) {
