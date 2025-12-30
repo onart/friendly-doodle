@@ -93,43 +93,51 @@ std::filesystem::path ResourceManager::drawExplore(const char* name, const char*
 					u8p[str.size()] = 0;
 					explore = p;
 				}
+				else {
+					ImGui::End();
+					return p;
+				}
 				break;
 			}
 		}
+
 		static char u8p2[256];
-		ImGui::InputText("##name", u8p2, sizeof(u8p2));
-		ImGui::SameLine();
-		if (ImGui::Button("Save Here")) {
-			result = explore / u8p2;
-			if (std::filesystem::exists(result)) {
-				if (std::filesystem::is_directory(result)) {
+		if (exploreSaveMode) {
+			ImGui::InputText("##name", u8p2, sizeof(u8p2));
+			ImGui::SameLine();
+			if (ImGui::Button("Save Here")) {
+				result = explore / u8p2;
+				result.replace_extension(".fdd");
+				if (std::filesystem::exists(result)) {
+					if (std::filesystem::is_directory(result)) {
+						result.clear();
+					}
+					else {
+						ImGui::OpenPopup("overwrite");
+					}
+				}
+			}
+			if (ImGui::BeginPopup("overwrite")) {
+				result = explore / u8p2;
+				result.replace_extension(".fdd");
+				ImGui::Text("%s: Already exsists. Overwrite?", result.u8string().c_str());
+				bool confirm = false;
+				if (ImGui::Button("Yes")) {
+					confirm = true;
+					ImGui::CloseCurrentPopup();
+				}
+				if (ImGui::Button("No")) {
+					ImGui::CloseCurrentPopup();
+				}
+				if (!confirm) {
 					result.clear();
 				}
 				else {
-					ImGui::OpenPopup("overwrite");
+					u8p[0] = 0;
+					u8p2[0] = 0;
 				}
+				ImGui::EndPopup();
 			}
-		}
-		if (ImGui::BeginPopup("overwrite")) {
-			result = explore / u8p2;
-			result.replace_extension(".fdd");
-			ImGui::Text("%s: Already exsists. Overwrite?", result.u8string().c_str());
-			bool confirm = false;
-			if (ImGui::Button("Yes")) {
-				confirm = true;
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Button("No")) {
-				ImGui::CloseCurrentPopup();
-			}
-			if (!confirm) {
-				result.clear();
-			}
-			else {
-				u8p[0] = 0;
-				u8p2[0] = 0;
-			}
-			ImGui::EndPopup();
 		}
 	}
 	ImGui::End();
@@ -142,6 +150,7 @@ void ResourceManager::draw(){
 	if (ImGui::Button("Save")) {
 		if (currentProject.empty()) {
 			explore = std::filesystem::current_path();
+			exploreSaveMode = true;
 		}
 		else {
 			save(currentProject);
@@ -150,6 +159,11 @@ void ResourceManager::draw(){
 	ImGui::SameLine();
 	if (ImGui::Button("Save As")) {
 		explore = std::filesystem::current_path();
+		exploreSaveMode = true;
+	}
+	if (ImGui::Button("Load")) {
+		explore = std::filesystem::current_path();
+		exploreSaveMode = false;
 	}
 
 	if (!explore.empty()) {
@@ -157,8 +171,18 @@ void ResourceManager::draw(){
 		auto path = drawExplore("Save as..", filter, std::size(filter));
 		if (!path.empty()) {
 			explore.clear();
-			save(path);
-			currentProject = path;
+			if (exploreSaveMode) {
+				save(path);
+				currentProject = path;
+			}
+			else {
+				if (load(path)) {
+					currentProject = path;
+				}
+				else {
+					currentProject = "";
+				}
+			}
 		}
 	}
 

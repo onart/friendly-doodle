@@ -62,6 +62,7 @@ private:
 	std::filesystem::path currentProject{};
 	std::filesystem::path explore{};
 	std::filesystem::path exploreSelected{};
+	bool exploreSaveMode = false;
 };
 
 extern ResourceManager mgr;
