@@ -200,6 +200,7 @@ std::string ShaderBufferObject::toPrimaryCode(size_t binding) {
 size_t ShaderBufferObject::getBinSize() {
 	size_t size = 16;
 	if (!rtv && !uav) {
+		size += 4;
 		if (!tempPng) {
 			D3D11_TEXTURE2D_DESC desc{};
 			texture->GetDesc(&desc);
@@ -278,7 +279,7 @@ std::shared_ptr<ShaderBufferObject> ShaderBufferObject::deserialize(stream& s) {
 				stbi_image_free(pix);
 				return {};
 			}
-			if (!ret->initResource(pix, 4 * ch, x, y, fmt)) {
+			if (!ret->initResource(pix, x * ch, x, y, fmt)) {
 				stbi_image_free(pix);
 				return {};
 			}
