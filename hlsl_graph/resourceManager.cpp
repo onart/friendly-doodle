@@ -13,6 +13,8 @@ void ResourceManager::clear() {
 	textures.clear();
 	vertexShaders.clear();
 	pixelShaders.clear();
+	computeShaders.clear();
+	pipelines.clear();
 }
 
 static char inputName[2][4096 * 3]{};
@@ -192,13 +194,21 @@ void ResourceManager::draw(){
 		if (ImGui::Begin("resources", &showResource)) {
 			ImGui::PushID("ubo");
 			if (ImGui::TreeNode("UBO")) {
-				for (auto& [name, ubo] : ubos) {
+				for(auto it = ubos.begin(); it != ubos.end(); ) {
+					auto& [name, ubo] = *it;
 					ImGui::PushID(name.c_str());
 					if (ImGui::TreeNode(name.c_str())) {
 						ubo->draw();
+						if (ImGui::Button("x")) {
+							it = ubos.erase(it);
+							ImGui::TreePop();
+							ImGui::PopID();
+							continue;
+						}
 						ImGui::TreePop();
 					}
 					ImGui::PopID();
+					++it;
 				}
 				if (ImGui::Button("+")) {
 					ImGui::OpenPopup("Add UBO");
@@ -561,6 +571,7 @@ void ResourceManager::save(const std::filesystem::path& name) {
 }
 
 bool ResourceManager::load(const std::filesystem::path& name) {
+	clear();
 	FILE* fp = fopen(name.string().c_str(), "rb");
 	if (!fp) {
 		return false;
@@ -595,7 +606,7 @@ bool ResourceManager::load(const std::filesystem::path& name) {
 
 	auto checkPos = [&reader]() {
 		uint32_t pos = reader.read<uint32_t>();
-		return reader.tell() == pos;
+		return reader.tell() == pos + sizeof(uint32_t);
 	};
 
 	if (reader.read<uint32_t>() != uboCount) return false;
@@ -663,6 +674,6 @@ bool ResourceManager::load(const std::filesystem::path& name) {
 	}
 	if (!checkPos()) return false;
 	if (pipelines.size() != pipeCount) return false; // overlapping name
-
+	
 	return true;
 }

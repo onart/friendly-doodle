@@ -198,7 +198,7 @@ std::string ShaderBufferObject::toPrimaryCode(size_t binding) {
 }
 
 size_t ShaderBufferObject::getBinSize() {
-	size_t size = 20;
+	size_t size = 16;
 	if (!rtv && !uav) {
 		if (!tempPng) {
 			D3D11_TEXTURE2D_DESC desc{};
@@ -243,8 +243,8 @@ bool ShaderBufferObject::serialize(stream& s) {
 	if (s.hadFault()) return false;
 
 	getBinSize();
-	s.write(tempPngLen);
 	if (tempPngLen) {
+		s.write(tempPngLen);
 		s.writeRaw(tempPng, tempPngLen);
 	}
 	return !s.hadFault();

@@ -39,7 +39,7 @@ std::string UBO::toPrimaryCode(size_t binding) {
 }
 
 size_t UBO::getBinSize() {
-	return data.size() * sizeof(data[0]);
+	return data.size() * sizeof(data[0]) + sizeof(size_t);
 }
 
 bool UBO::serialize(stream& s) {
