@@ -231,13 +231,21 @@ void ResourceManager::draw(){
 
 			ImGui::PushID("texture");
 			if (ImGui::TreeNode("Shader Buffer Object")) {
-				for (auto& [name, texture] : textures) {
+				for (auto it = textures.begin(); it != textures.end(); ) {
+					auto& [name, texture] = *it;
 					ImGui::PushID(name.c_str());
 					if (ImGui::TreeNode(name.c_str())) {
 						texture->show(256, 256);
+						if (ImGui::Button("x")) {
+							it = textures.erase(it);
+							ImGui::TreePop();
+							ImGui::PopID();
+							continue;
+						}
 						ImGui::TreePop();
 					}
 					ImGui::PopID();
+					++it;
 				}
 				if (ImGui::Button("+")) {
 					ImGui::OpenPopup("Add Shader Buffer Object");
@@ -339,13 +347,21 @@ void ResourceManager::draw(){
 		if (ImGui::Begin("Shaders")) {
 			ImGui::PushID("vs");
 			if (ImGui::TreeNode("Vertex Shaders")) {
-				for (auto& [name, vs] : vertexShaders) {
+				for (auto it = vertexShaders.begin(); it != vertexShaders.end(); ) {
+					auto& [name, vs] = *it;
 					ImGui::PushID(name.c_str());
 					if (ImGui::TreeNode(name.c_str())) {
 						vs->draw();
+						if (ImGui::Button("x")) {
+							it = vertexShaders.erase(it);
+							ImGui::TreePop();
+							ImGui::PopID();
+							continue;
+						}
 						ImGui::TreePop();
 					}
 					ImGui::PopID();
+					++it;
 				}
 				if (ImGui::Button("+")) {
 					ImGui::OpenPopup("New Vertex Shader");
@@ -367,13 +383,21 @@ void ResourceManager::draw(){
 			ImGui::PopID(); // vs
 			ImGui::PushID("fs");
 			if (ImGui::TreeNode("Pixel Shaders")) {
-				for (auto& [name, vs] : pixelShaders) {
+				for (auto it = pixelShaders.begin(); it != pixelShaders.end(); ) {
+					auto& [name, vs] = *it;
 					ImGui::PushID(name.c_str());
 					if (ImGui::TreeNode(name.c_str())) {
 						vs->draw();
+						if (ImGui::Button("x")) {
+							it = pixelShaders.erase(it);
+							ImGui::TreePop();
+							ImGui::PopID();
+							continue;
+						}
 						ImGui::TreePop();
 					}
 					ImGui::PopID();
+					++it;
 				}
 				if (ImGui::Button("+")) {
 					ImGui::OpenPopup("New Pixel Shader");
@@ -395,13 +419,21 @@ void ResourceManager::draw(){
 			ImGui::PopID(); // fs
 			ImGui::PushID("cs");
 			if (ImGui::TreeNode("Compute Shaders")) {
-				for (auto& [name, vs] : computeShaders) {
+				for (auto it = computeShaders.begin(); it != computeShaders.end(); ) {
+					auto& [name, vs] = *it;
 					ImGui::PushID(name.c_str());
 					if (ImGui::TreeNode(name.c_str())) {
 						vs->draw();
+						if (ImGui::Button("x")) {
+							it = computeShaders.erase(it);
+							ImGui::TreePop();
+							ImGui::PopID();
+							continue;
+						}
 						ImGui::TreePop();
 					}
 					ImGui::PopID();
+					++it;
 				}
 				if (ImGui::Button("+")) {
 					ImGui::OpenPopup("New Compute Shader");
