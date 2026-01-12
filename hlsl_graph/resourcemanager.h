@@ -59,6 +59,7 @@ private:
 	std::map<std::string, std::shared_ptr<struct Node>> pipelines;
 	bool showResource{};
 	bool showShader{};
+	bool showPipeline{};
 	std::filesystem::path currentProject{};
 	std::filesystem::path explore{};
 	std::filesystem::path exploreSelected{};

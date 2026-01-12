@@ -1,5 +1,6 @@
 #include "Node.h"
 #include <vector>
+#include "imgui.h"
 
 enum SerialTree {
 	IN = 0,
@@ -72,4 +73,45 @@ std::shared_ptr<Node> Node::deserialize(stream& s) {
 		}
 	}
 	return ret;
+}
+
+void Node::draw() {
+	ImGui::PushID(this);
+	if (ImGui::TreeNode("Node")) {
+		drawDetails();
+		for (auto& pr : predecessors) {
+			pr->draw();
+		}
+
+		ImGui::Checkbox("Run per frame", &runPerFrame);
+		if (runPerFrame) {
+			run();
+		}
+		else if (ImGui::Button("Run")) {
+			run();
+		}
+		if (auto pred = drawAdd()) {
+			addPredecessor(pred);
+		}
+		const char* NODE_TYPES[] = { "Plain Node", /*"Pipeline",*/ };
+		ImGui::TreePop();
+	}
+	ImGui::PopID();
+}
+
+std::shared_ptr<Node> Node::drawAdd(char* nodeNameBuffer, size_t size) {
+	const char* NODE_TYPES[] = { "Plain Node", /*"Pipeline",*/ };
+	if (nodeNameBuffer) {
+		ImGui::InputText("New Node Name", nodeNameBuffer, size);
+	}
+	if (ImGui::BeginCombo(nodeNameBuffer ? "new predecessor type" : "new node type", "select")) {
+		for (auto type : NODE_TYPES) {
+			if (ImGui::Selectable(type, false)) {
+				ImGui::EndCombo();
+				return create<Node>();
+			}
+		}
+		ImGui::EndCombo();
+	}
+	return {};
 }

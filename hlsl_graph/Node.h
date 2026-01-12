@@ -31,6 +31,8 @@ struct Node {
 	void removePredecessor(const std::shared_ptr<Node>& node) {
 		predecessors.erase(node);
 	}
+	void draw();
+	static std::shared_ptr<Node> drawAdd(char* nodeNameBuffer = nullptr, size_t nameBufferSize = 0);
 	virtual ~Node() = default;
 	size_t getBinSize();
 	bool serialize(stream& s);
@@ -39,12 +41,14 @@ protected:
 	Node() = default;
 	std::set<std::shared_ptr<Node>> predecessors;
 	bool alive = true;
+	bool runPerFrame = false;
 	static std::shared_ptr<Node> create(uint32_t type);
 	virtual uint32_t type() { return 0; }
 	virtual void run() {}
 	virtual bool serializeDetails(stream& s) { return !s.hadFault(); }
 	virtual bool deserializeDetails(stream& s) { return !s.hadFault(); }
 	virtual size_t getBinSizeDetails() { return 0; }
+	virtual void drawDetails() {}
 };
 
 #endif // !__NODE_H__

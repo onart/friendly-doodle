@@ -190,6 +190,7 @@ void ResourceManager::draw(){
 
 	ImGui::Checkbox("resource window", &showResource);
 	ImGui::Checkbox("shader window", &showShader);
+	ImGui::Checkbox("pipeline window", &showPipeline);
 	if (showResource) {
 		if (ImGui::Begin("resources", &showResource)) {
 			ImGui::PushID("ubo");
@@ -455,6 +456,33 @@ void ResourceManager::draw(){
 			ImGui::PopID(); // fs
 		}
 		ImGui::End(); // shader
+	}
+
+	if (showPipeline) {
+		if (ImGui::Begin("Pipelines")) {
+			for (auto it = pipelines.begin(); it != pipelines.end(); ) {
+				auto& [name, p] = *it;
+				ImGui::PushID(name.c_str());
+				if (ImGui::Begin("Pipeline", &showPipeline)) {
+					p->draw();
+					if (ImGui::Button("x")) {
+						it = pipelines.erase(it);
+						ImGui::End();
+						ImGui::PopID();
+						continue;
+					}
+				}
+				ImGui::End();
+				ImGui::PopID();
+				++it;
+			}
+			static char nameBuffer[256]{};
+			if (auto newNode = Node::drawAdd(nameBuffer, sizeof(nameBuffer))) {
+				pipelines.insert({ nameBuffer, newNode });
+				nameBuffer[0] = 0;
+			}
+		}
+		ImGui::End();
 	}
 
 	ImGui::PopID(); // this
