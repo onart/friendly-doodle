@@ -1,6 +1,7 @@
 #include "Node.h"
 #include <vector>
 #include "imgui.h"
+#include "GraphicsPipelineNode.h"
 
 enum SerialTree {
 	IN = 0,
@@ -36,6 +37,7 @@ std::shared_ptr<Node> Node::create(uint32_t t) {
 	switch (t)
 	{
 	case 0: return create<Node>();
+	case 1: return create<GraphicsPipelineNode>();
 	default:
 		break;
 	}

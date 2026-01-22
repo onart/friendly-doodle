@@ -289,3 +289,10 @@ std::shared_ptr<ShaderBufferObject> ShaderBufferObject::deserialize(stream& s) {
 	
 	return ret;
 }
+
+void ShaderBufferObject::bindInput(int slot) {
+	ID3D11DeviceContext* ctx = D3D11Device::getContext();
+	if (srv) {
+		ctx->PSSetShaderResources(slot, 1, &srv); // sampler state / blend state?
+	}
+}

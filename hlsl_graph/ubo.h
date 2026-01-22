@@ -10,6 +10,11 @@
 
 class UBO {
 public:
+	enum class BindOn {
+		VertexShader = 0,
+		PixelShader = 1,
+		ComputeShader = 2,
+	};
 	friend class ResourceManager;
 	std::shared_ptr<UBO> static create(size_t size) {
 		UBO ubo;
@@ -41,6 +46,8 @@ public:
 	}
 
 	void draw();
+	void bind(BindOn b, int slot);
+
 	std::string toPrimaryCode(size_t binding);
 	size_t getBinSize();
 	bool serialize(stream& s);

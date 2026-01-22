@@ -49,6 +49,9 @@ public:
 	}
 	std::shared_ptr<class UBO> addUBOUI(bool reset);
 	std::shared_ptr<class ShaderBufferObject> addSBOUI(bool reset);
+	inline const auto& getVertexShaders() const { return vertexShaders; }
+	inline const auto& getPixelShaders() const { return pixelShaders; }
+	inline const auto& getComputeShaders() const { return computeShaders; }
 private:
 	std::filesystem::path drawExplore(const char* name, const char** extFilter, int filterCount);
 	std::map<std::string, std::shared_ptr<class UBO>> ubos;

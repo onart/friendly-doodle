@@ -126,6 +126,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d11dev.cpp" />
+    <ClCompile Include="GraphicsPipelineNode.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
@@ -141,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3ddev.h" />
+    <ClInclude Include="GraphicsPipelineNode.h" />
     <ClInclude Include="image.h" />
     <ClInclude Include="logger.h" />
     <ClInclude Include="Node.h" />

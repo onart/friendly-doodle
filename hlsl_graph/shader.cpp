@@ -204,6 +204,10 @@ bool VertexShader::compileShaderUI(const char* data, size_t size) {
 	return p;
 }
 
+void VertexShader::bind() {
+	D3D11Device::getContext()->VSSetShader(shader, nullptr, 0);
+}
+
 const std::string& getLastCompileError() {
 	return lastError;
 }
@@ -213,6 +217,10 @@ void FragmentShader::draw() {
 	ImGui::Text("Pixel Shader: %p", shader);
 	drawShaderResourceUI(shader);
 	ImGui::PopID();
+}
+
+void FragmentShader::bind() {
+	D3D11Device::getContext()->PSSetShader(shader, nullptr, 0);
 }
 
 bool FragmentShader::compileShaderUI(const char* data, size_t size) {
@@ -227,6 +235,10 @@ void ComputeShader::draw() {
 	ImGui::Text("Compute Shader: %p", shader);
 	drawShaderResourceUI(shader);
 	ImGui::PopID();
+}
+
+void ComputeShader::bind() {
+	D3D11Device::getContext()->CSSetShader(shader, nullptr, 0);
 }
 
 bool ComputeShader::compileShaderUI(const char* data, size_t size) {

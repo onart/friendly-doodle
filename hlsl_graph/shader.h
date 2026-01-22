@@ -42,6 +42,7 @@ class VertexShader: public Shader {
 		if (shader) shader->Release();
 	}
 	void draw();
+	void bind();
 private:
 	VertexShader() { sourceCode.resize(16384); }
 	bool compileShaderUI(const char* data, size_t size) override;
@@ -58,6 +59,7 @@ public:
 		if (shader) shader->Release();
 	}
 	void draw();
+	void bind();
 private:
 	FragmentShader() { sourceCode.resize(16384); }
 	ID3D11PixelShader* shader{};
@@ -74,6 +76,7 @@ public:
 		if (shader) shader->Release();
 	}
 	void draw();
+	void bind();
 private:
 	ComputeShader() { sourceCode.resize(16384); }
 	ID3D11ComputeShader* shader{};

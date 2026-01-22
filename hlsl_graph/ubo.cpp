@@ -70,6 +70,25 @@ void UBO::draw() {
 	ImGui::PopID();
 }
 
+void UBO::bind(BindOn b, int slot) {
+	update();
+	ID3D11DeviceContext* ctx = D3D11Device::getContext();
+	switch (b)
+	{
+	case UBO::BindOn::VertexShader:
+		ctx->VSSetConstantBuffers(static_cast<UINT>(slot), 1, &buffer);
+		break;
+	case UBO::BindOn::PixelShader:
+		ctx->PSSetConstantBuffers(static_cast<UINT>(slot), 1, &buffer);
+		break;
+	case UBO::BindOn::ComputeShader:
+		ctx->CSSetConstantBuffers(static_cast<UINT>(slot), 1, &buffer);
+		break;
+	default:
+		break;
+	}
+}
+
 void UBO::update(){
 	if (!dirty) {
 		return;
