@@ -37,6 +37,7 @@ struct Node {
 	size_t getBinSize();
 	bool serialize(stream& s);
 	static std::shared_ptr<Node> deserialize(stream& s);
+	virtual const char* name() { return "Plain Node"; }
 protected:
 	Node() = default;
 	std::set<std::shared_ptr<Node>> predecessors;

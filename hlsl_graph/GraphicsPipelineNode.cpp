@@ -9,10 +9,11 @@
 struct _GPData {
 	std::string vertexShaderKey;
 	std::string pixelShaderKey;
-	std::vector<std::string> cbKeysV;
-	std::vector<std::string> cbKeysP;
-	std::vector<std::string> inputTextureKeys;
-	std::vector<std::string> outputTextureKeys;
+	std::list<std::string> cbKeysV;
+	std::list<std::string> cbKeysP;
+	std::list<std::string> inputTextureKeys;
+	std::list<std::string> outputTextureKeys;
+	int vertexCount = 3;
 };
 
 #define pipeline (( _GPData*)this->_pipeline)
@@ -73,7 +74,7 @@ void GraphicsPipelineNode::run() {
 	}
 
 	if (rtvs[0]) {
-		auto tex = mgr.getTexture(pipeline->outputTextureKeys[0])->getTexture();
+		auto tex = mgr.getTexture(pipeline->outputTextureKeys.front())->getTexture();
 		if (tex) {
 			D3D11_TEXTURE2D_DESC desc{};
 			tex->GetDesc(&desc);
@@ -88,6 +89,8 @@ void GraphicsPipelineNode::run() {
 	ctx->OMSetRenderTargets(i, rtvs, nullptr); // no dsv for now
 	
 	i = 0;
+	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	ctx->Draw(pipeline->vertexCount, 0);
 }
 
 GraphicsPipelineNode::~GraphicsPipelineNode() {
@@ -105,17 +108,100 @@ bool GraphicsPipelineNode::serializeDetails(stream& s) {
 
 void GraphicsPipelineNode::drawDetails() {
 	ImGui::PushID(this);
-	if (ImGui::BeginCombo("Vertex Shader", pipeline->vertexShaderKey.c_str())) {
-		for (auto& [key, vs] : mgr.getVertexShaders()) {
-			bool selected = (key == pipeline->vertexShaderKey);
-			if (ImGui::Selectable(key.c_str(), selected)) {
-				pipeline->vertexShaderKey = key;
+
+	// VS
+	ImGui::PushID('v');
+	if (ImGui::CollapsingHeader("Vertex Shader...")) {
+		const std::string cbh = "cb #";
+		int cbi = 0;
+		for (auto it = pipeline->cbKeysV.begin(); it != pipeline->cbKeysV.end();) {
+			if (ImGui::BeginCombo((cbh + std::to_string(cbi)).c_str(), it->c_str())) {
+				for (auto& [key, cb] : mgr.getUBOs()) {
+					bool selected = (*it == pipeline->vertexShaderKey);
+					if (ImGui::Selectable(key.c_str(), selected)) {
+						*it = key;
+					}
+				}
+				ImGui::EndCombo();
 			}
-			if (selected) {
-				ImGui::SetItemDefaultFocus();
+			ImGui::SameLine();
+			ImGui::PushID(cbi);
+			if (ImGui::Button("x")) {
+				it = pipeline->cbKeysV.erase(it);
+			}
+			else {
+				++it;
+			}
+			ImGui::PopID();
+			cbi++;
+		}
+		if (ImGui::Button("+")) {
+			pipeline->cbKeysV.push_back("");
+		}
+		if (ImGui::BeginCombo("Shader", pipeline->vertexShaderKey.c_str())) {
+			for (auto& [key, vs] : mgr.getVertexShaders()) {
+				bool selected = (key == pipeline->vertexShaderKey);
+				if (ImGui::Selectable(key.c_str(), selected)) {
+					pipeline->vertexShaderKey = key;
+				}
+			}
+			ImGui::EndCombo();
+		}
+		if (auto vs = mgr.getVertexShader(pipeline->vertexShaderKey)) {
+			ImGui::Indent();
+			if (ImGui::CollapsingHeader((pipeline->vertexShaderKey + "##vs").c_str())) {
+				vs->draw();
+			}
+			ImGui::Unindent();
+		}
+	}
+	ImGui::PopID(); // 'v'
+
+	// PS
+	ImGui::PushID('p');
+	if (ImGui::CollapsingHeader("Pixel Shader...")) {
+		const std::string cbh = "cb #";
+		int cbi = 0;
+		for (auto it = pipeline->cbKeysV.begin(); it != pipeline->cbKeysV.end();) {
+			if (ImGui::BeginCombo((cbh + std::to_string(cbi)).c_str(), it->c_str())) {
+				for (auto& [key, cb] : mgr.getUBOs()) {
+					bool selected = (*it == pipeline->vertexShaderKey);
+					if (ImGui::Selectable(key.c_str(), selected)) {
+						*it = key;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::SameLine();
+			ImGui::PushID(cbi);
+			if (ImGui::Button("x")) {
+				it = pipeline->cbKeysV.erase(it);
+			}
+			else {
+				++it;
+			}
+			ImGui::PopID();
+			cbi++;
+		}
+		if (ImGui::Button("+")) {
+			pipeline->cbKeysV.push_back("");
+		}
+		if (ImGui::BeginCombo("Pixel Shader", pipeline->pixelShaderKey.c_str())) {
+			for (auto& [key, vs] : mgr.getPixelShaders()) {
+				bool selected = (key == pipeline->pixelShaderKey);
+				if (ImGui::Selectable(key.c_str(), selected)) {
+					pipeline->pixelShaderKey = key;
+				}
+			}
+			ImGui::EndCombo();
+		}
+		if (auto vs = mgr.getPixelShader(pipeline->pixelShaderKey)) {
+			if (ImGui::CollapsingHeader((pipeline->pixelShaderKey + "##vs").c_str())) {
+				vs->draw();
 			}
 		}
-		ImGui::EndCombo();
 	}
+	ImGui::PopID(); // 'p'
+
 	ImGui::PopID();
 }

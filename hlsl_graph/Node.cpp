@@ -79,7 +79,7 @@ std::shared_ptr<Node> Node::deserialize(stream& s) {
 
 void Node::draw() {
 	ImGui::PushID(this);
-	if (ImGui::TreeNode("Node")) {
+	if (ImGui::TreeNode(name())) {
 		drawDetails();
 		for (auto& pr : predecessors) {
 			pr->draw();
@@ -95,22 +95,21 @@ void Node::draw() {
 		if (auto pred = drawAdd()) {
 			addPredecessor(pred);
 		}
-		const char* NODE_TYPES[] = { "Plain Node", /*"Pipeline",*/ };
 		ImGui::TreePop();
 	}
 	ImGui::PopID();
 }
 
 std::shared_ptr<Node> Node::drawAdd(char* nodeNameBuffer, size_t size) {
-	const char* NODE_TYPES[] = { "Plain Node", /*"Pipeline",*/ };
+	const char* NODE_TYPES[] = { "Plain Node", "Graphics Pipeline", };
 	if (nodeNameBuffer) {
 		ImGui::InputText("New Node Name", nodeNameBuffer, size);
 	}
 	if (ImGui::BeginCombo(nodeNameBuffer ? "new predecessor type" : "new node type", "select")) {
-		for (auto type : NODE_TYPES) {
+		for (auto& type : NODE_TYPES) {
 			if (ImGui::Selectable(type, false)) {
 				ImGui::EndCombo();
-				return create<Node>();
+				return create(&type - NODE_TYPES);
 			}
 		}
 		ImGui::EndCombo();

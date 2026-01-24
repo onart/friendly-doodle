@@ -463,23 +463,29 @@ void ResourceManager::draw(){
 			for (auto it = pipelines.begin(); it != pipelines.end(); ) {
 				auto& [name, p] = *it;
 				ImGui::PushID(name.c_str());
-				if (ImGui::Begin("Pipeline", &showPipeline)) {
-					p->draw();
-					if (ImGui::Button("x")) {
-						it = pipelines.erase(it);
-						ImGui::End();
-						ImGui::PopID();
-						continue;
+				ImGui::Checkbox((name + "##check").c_str(), &p.second);
+				if (p.second) {
+					if (ImGui::Begin(name.c_str(), &p.second)) {
+						p.first->draw();
+						if (ImGui::Button("x")) {
+							it = pipelines.erase(it);
+							ImGui::End();
+							ImGui::PopID();
+							continue;
+						}
 					}
+					ImGui::End();
 				}
-				ImGui::End();
 				ImGui::PopID();
 				++it;
 			}
+			ImGui::Separator();
 			static char nameBuffer[256]{};
 			if (auto newNode = Node::drawAdd(nameBuffer, sizeof(nameBuffer))) {
-				pipelines.insert({ nameBuffer, newNode });
-				nameBuffer[0] = 0;
+				if (nameBuffer[0] != '\0') {
+					pipelines.insert({ nameBuffer, {newNode, true} });
+					nameBuffer[0] = 0;
+				}
 			}
 		}
 		ImGui::End();
@@ -730,7 +736,7 @@ bool ResourceManager::load(const std::filesystem::path& name) {
 		if (name.empty()) return false;
 		auto obj = Node::deserialize(reader);
 		if (!obj) return false;
-		pipelines[name] = obj;
+		pipelines[name] = { obj, false };
 	}
 	if (!checkPos()) return false;
 	if (pipelines.size() != pipeCount) return false; // overlapping name

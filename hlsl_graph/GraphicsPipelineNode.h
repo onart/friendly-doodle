@@ -7,6 +7,7 @@ class GraphicsPipelineNode : public Node {
 public:
 	GraphicsPipelineNode();
 	virtual ~GraphicsPipelineNode();
+	virtual const char* name() { return "Graphics Pipeline Node"; }
 protected:
 	virtual void run() override;
 	virtual bool serializeDetails(stream& s) override;

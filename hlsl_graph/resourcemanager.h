@@ -52,6 +52,7 @@ public:
 	inline const auto& getVertexShaders() const { return vertexShaders; }
 	inline const auto& getPixelShaders() const { return pixelShaders; }
 	inline const auto& getComputeShaders() const { return computeShaders; }
+	inline const auto& getUBOs() const { return ubos; }
 private:
 	std::filesystem::path drawExplore(const char* name, const char** extFilter, int filterCount);
 	std::map<std::string, std::shared_ptr<class UBO>> ubos;
@@ -59,7 +60,7 @@ private:
 	std::map<std::string, std::shared_ptr<class VertexShader>> vertexShaders;
 	std::map<std::string, std::shared_ptr<class FragmentShader>> pixelShaders;
 	std::map<std::string, std::shared_ptr<class ComputeShader>> computeShaders;
-	std::map<std::string, std::shared_ptr<struct Node>> pipelines;
+	std::map<std::string, std::pair<std::shared_ptr<struct Node>, bool>> pipelines;
 	bool showResource{};
 	bool showShader{};
 	bool showPipeline{};
